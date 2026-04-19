@@ -1,10 +1,18 @@
 import User from "../modals/userModal.js";
 import jwt from "jsonwebtoken";
+import axios from "axios";
+import OAuth2Client from "../configs/googleConfig.js";
 const loginUser = async (req, res) => {
-    console.log(req.body);
     try {
-        const { name, email, picture, password } = req.body;
-        if (!email || !name || !picture || !password) {
+        const { code } = req.body;
+        if (!code) {
+            return res.status(400).json({ message: "Code is required" });
+        }
+        const googleRes = await OAuth2Client.getToken(code);
+        OAuth2Client.setCredentials(googleRes.tokens);
+        const userRes = await axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${googleRes.tokens.access_token}`);
+        const { name, email, picture } = userRes.data;
+        if (!email || !name || !picture) {
             return res.status(400).json({ message: "All fields are required" });
         }
         const user = await User.findOne({ email: email });
@@ -20,9 +28,7 @@ const loginUser = async (req, res) => {
             const user = await User.create({
                 email: email,
                 name: name,
-                image: picture,
-                password: password,
-                role: role || null
+                image: picture
             });
             const token = jwt.sign({ user }, process.env.JWT_SECRET, {
                 expiresIn: "1h",
@@ -39,6 +45,7 @@ const loginUser = async (req, res) => {
 const updateRole = async (req, res) => {
     try {
         const user = req.newuser;
+        console.log(user);
         if (!user) {
             return res.status(401).json({ message: "User not found" });
         }
@@ -53,8 +60,8 @@ const updateRole = async (req, res) => {
         if (!user._id) {
             return res.status(400).json({ message: "User not found" });
         }
-        const updateduser = await User.findByIdAndUpdate(user._id, { role: role }, { new: true });
-        const updatedToken = jwt.sign({ user }, process.env.JWT_SECRET, {
+        const updateduser = await User.findOneAndUpdate({ _id: user._id }, { role: role }, { new: true });
+        const updatedToken = jwt.sign({ updateduser }, process.env.JWT_SECRET, {
             expiresIn: "1h",
         });
         res
@@ -69,4 +76,16 @@ const updateRole = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-export { loginUser, updateRole };
+const myProfile = async (req, res) => {
+    try {
+        const user = req.newuser;
+        if (!user) {
+            return res.status(401).json({ message: "User not found" });
+        }
+        res.status(200).json({ user });
+    }
+    catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+export { loginUser, updateRole, myProfile };
