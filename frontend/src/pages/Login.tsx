@@ -32,7 +32,7 @@ const Login = () => {
   return (
     <>
       <main className="flex items-center justify-center h-screen">
-          <div className="text-center h-[70%] w-[50%] flex items-center justify-center flex-col gap-4 bg-[#f8f6ec] p-8 rounded-xl border-2 border-slate-600">
+          <div className="text-center h-[70%] w-[50%] flex items-center justify-between flex-col gap-4 bg-[#f8f6ec] p-8 rounded-xl border-2 border-slate-600">
             <h1 className="text-4xl font-bold stroke-1 stroke-black text-[#e8aa58f1]">UrbanFood</h1>
             <p className="text-lg font-medium">Login or signup to continue</p>
 
