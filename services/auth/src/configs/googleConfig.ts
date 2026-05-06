@@ -5,9 +5,9 @@ dotenv.config();
 const google = new GoogleApis();
 
 const OAuth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    "auth message"
-);  
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  "postmessage",
+);
 
 export default OAuth2Client;

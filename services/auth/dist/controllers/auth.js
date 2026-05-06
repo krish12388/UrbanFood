@@ -8,38 +8,41 @@ const loginUser = async (req, res) => {
         if (!code) {
             return res.status(400).json({ message: "Code is required" });
         }
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET missing");
+        }
         const googleRes = await OAuth2Client.getToken(code);
         OAuth2Client.setCredentials(googleRes.tokens);
+        if (!googleRes.tokens.access_token) {
+            return res.status(500).json({ message: "No access token" });
+        }
         const userRes = await axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${googleRes.tokens.access_token}`);
         const { name, email, picture } = userRes.data;
-        if (!email || !name || !picture) {
-            return res.status(400).json({ message: "All fields are required" });
+        if (!email) {
+            return res.status(400).json({ message: "Email not found" });
         }
-        const user = await User.findOne({ email: email });
-        if (user) {
-            return res.status(400).json({ message: "User already exists" });
-        }
-        else {
-            const allowedRoles = ["customer", "admin", "delivery"];
-            const { role } = req.body;
-            if (role && !allowedRoles.includes(role)) {
-                return res.status(400).json({ message: "Invalid role" });
-            }
-            const user = await User.create({
-                email: email,
-                name: name,
-                image: picture
+        let user = await User.findOne({ email });
+        if (!user) {
+            user = await User.create({
+                email,
+                name,
+                image: picture,
             });
-            const token = jwt.sign({ user }, process.env.JWT_SECRET, {
-                expiresIn: "1h",
-            });
-            return res
-                .status(201)
-                .json({ message: "User created successfully", token, user });
         }
+        const token = jwt.sign({ user }, process.env.JWT_SECRET, {
+            expiresIn: "1h",
+        });
+        return res.status(200).json({
+            message: "Login success",
+            token,
+            user,
+        });
     }
     catch (error) {
-        return res.status(500).json({ message: error.message });
+        console.error("LOGIN ERROR:", error);
+        return res.status(500).json({
+            message: error.message || "Internal Server Error",
+        });
     }
 };
 const updateRole = async (req, res) => {
